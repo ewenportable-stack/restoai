@@ -63,7 +63,7 @@ export class IngredientsService {
         category: dto.category,
         unit: dto.unit,
         unit_cost: dto.unitCost ?? 0,
-        current_stock: dto.currentStock ?? 0,
+        current_stock: 0,
         reorder_threshold: dto.reorderThreshold ?? 0,
         establishment_id: establishmentId,
       })
@@ -84,7 +84,6 @@ export class IngredientsService {
     if (dto.category !== undefined) patch['category'] = dto.category;
     if (dto.unit !== undefined) patch['unit'] = dto.unit;
     if (dto.unitCost !== undefined) patch['unit_cost'] = dto.unitCost;
-    if (dto.currentStock !== undefined) patch['current_stock'] = dto.currentStock;
     if (dto.reorderThreshold !== undefined) patch['reorder_threshold'] = dto.reorderThreshold;
 
     const { data, error } = await this.supabase.db
