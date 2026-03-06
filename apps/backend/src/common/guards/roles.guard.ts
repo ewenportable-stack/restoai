@@ -2,7 +2,7 @@ import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '@chefai/shared';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { UserEntity } from '../../modules/users/entities/user.entity';
+import { UserRecord } from '../../modules/users/users.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -15,7 +15,7 @@ export class RolesGuard implements CanActivate {
     ]);
     if (!requiredRoles) return true;
 
-    const { user } = context.switchToHttp().getRequest() as { user: UserEntity };
+    const { user } = context.switchToHttp().getRequest() as { user: UserRecord };
     return requiredRoles.includes(user.role);
   }
 }

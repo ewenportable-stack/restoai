@@ -1,42 +1,32 @@
-import 'reflect-metadata';
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import * as express from 'express';
-import { AppModule } from '../src/app.module';
 import type { IncomingMessage, ServerResponse } from 'http';
+import express from 'express';
+import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import { AppModule } from '../src/app.module';
+import { ValidationPipe } from '@nestjs/common';
 
-const server = express();
-let isInitialized = false;
+let cachedApp: express.Express | null = null;
 
-async function bootstrap() {
-  if (isInitialized) return server;
+async function bootstrap(): Promise<express.Express> {
+  if (cachedApp) return cachedApp;
 
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
-    logger: ['error', 'warn'],
-  });
-
-  app.setGlobalPrefix('api/v1');
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
+  const expressApp = express();
+  const nestApp = await NestFactory.create(
+    AppModule,
+    new ExpressAdapter(expressApp),
+    { logger: ['error', 'warn'] },
   );
 
-  app.enableCors({
-    origin: process.env.FRONTEND_URL ?? '*',
-    credentials: true,
-  });
+  nestApp.enableCors({ origin: '*' });
+  nestApp.setGlobalPrefix('api/v1');
+  nestApp.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  await app.init();
-  isInitialized = true;
-  return server;
+  await nestApp.init();
+  cachedApp = expressApp;
+  return cachedApp;
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   const app = await bootstrap();
-  app(req, res);
+  app(req as any, res as any);
 }

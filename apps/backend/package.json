@@ -38,7 +38,8 @@
     "rxjs": "^7.8.1",
     "nodemailer": "^6.9.14",
     "exceljs": "^4.4.0",
-    "@chefai/shared": "*"
+    "@chefai/shared": "file:packages/shared",
+    "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.5",

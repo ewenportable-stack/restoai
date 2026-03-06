@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { UserEntity } from '../users/entities/user.entity';
+import { UserRecord } from '../users/users.service';
 import { SuppliersService, CreateSupplierDto } from './suppliers.service';
 
 @ApiTags('suppliers')
@@ -13,12 +13,12 @@ export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) {}
 
   @Get()
-  findAll(@CurrentUser() user: UserEntity) {
+  findAll(@CurrentUser() user: UserRecord) {
     return this.suppliersService.findAll(user.establishmentId);
   }
 
   @Post()
-  create(@Body() dto: CreateSupplierDto, @CurrentUser() user: UserEntity) {
+  create(@Body() dto: CreateSupplierDto, @CurrentUser() user: UserRecord) {
     return this.suppliersService.create(dto, user.establishmentId);
   }
 }

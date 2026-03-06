@@ -177,3 +177,14 @@ VALUES (
   '$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0/wiX7rFiTW',
   '00000000-0000-0000-0000-000000000001'
 ) ON CONFLICT DO NOTHING;
+
+-- Helper function for atomic stock increment
+CREATE OR REPLACE FUNCTION increment_stock(ingredient_id UUID, delta DECIMAL)
+RETURNS void
+LANGUAGE sql
+AS $$
+  UPDATE ingredients
+  SET current_stock = current_stock + delta,
+      updated_at = NOW()
+  WHERE id = ingredient_id;
+$$;

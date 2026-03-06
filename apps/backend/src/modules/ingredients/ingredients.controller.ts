@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { UserEntity } from '../users/entities/user.entity';
+import { UserRecord } from '../users/users.service';
 import { IngredientsService } from './ingredients.service';
 import { CreateIngredientDto } from './dto/create-ingredient.dto';
 
@@ -25,23 +25,23 @@ export class IngredientsController {
   constructor(private readonly ingredientsService: IngredientsService) {}
 
   @Get()
-  findAll(@CurrentUser() user: UserEntity) {
+  findAll(@CurrentUser() user: UserRecord) {
     return this.ingredientsService.findAll(user.establishmentId);
   }
 
   @Get('alerts/low-stock')
-  getLowStock(@CurrentUser() user: UserEntity) {
+  getLowStock(@CurrentUser() user: UserRecord) {
     return this.ingredientsService.getLowStockAlerts(user.establishmentId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @CurrentUser() user: UserEntity) {
+  findOne(@Param('id') id: string, @CurrentUser() user: UserRecord) {
     return this.ingredientsService.findOne(id, user.establishmentId);
   }
 
   @Post()
   @Roles('admin', 'chef', 'manager')
-  create(@Body() dto: CreateIngredientDto, @CurrentUser() user: UserEntity) {
+  create(@Body() dto: CreateIngredientDto, @CurrentUser() user: UserRecord) {
     return this.ingredientsService.create(dto, user.establishmentId);
   }
 
@@ -50,14 +50,14 @@ export class IngredientsController {
   update(
     @Param('id') id: string,
     @Body() dto: Partial<CreateIngredientDto>,
-    @CurrentUser() user: UserEntity,
+    @CurrentUser() user: UserRecord,
   ) {
     return this.ingredientsService.update(id, user.establishmentId, dto);
   }
 
   @Delete(':id')
   @Roles('admin', 'manager')
-  remove(@Param('id') id: string, @CurrentUser() user: UserEntity) {
+  remove(@Param('id') id: string, @CurrentUser() user: UserRecord) {
     return this.ingredientsService.remove(id, user.establishmentId);
   }
 }

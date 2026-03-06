@@ -1,10 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { OrderEntity } from './entities/order.entity';
-import { OrderLineEntity } from './entities/order-line.entity';
+import { SupabaseService } from '../supabase/supabase.service';
 import { IngredientsService } from '../ingredients/ingredients.service';
-import { UserEntity } from '../users/entities/user.entity';
+import { UserRecord } from '../users/users.service';
 
 export class CreateOrderDto {
   supplierId: string;
@@ -12,67 +9,156 @@ export class CreateOrderDto {
   lines: { ingredientId: string; quantity: number; unitPrice: number }[];
 }
 
+export type OrderStatus = 'draft' | 'sent' | 'confirmed' | 'received' | 'cancelled';
+
+export interface OrderLineRecord {
+  id: string;
+  orderId: string;
+  ingredientId: string;
+  ingredientName: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  total: number;
+}
+
+export interface OrderRecord {
+  id: string;
+  supplierId: string;
+  status: OrderStatus;
+  notes?: string;
+  total: number;
+  establishmentId: string;
+  sentAt?: string;
+  receivedAt?: string;
+  createdAt: string;
+  lines: OrderLineRecord[];
+}
+
+function toOrderLine(row: Record<string, unknown>): OrderLineRecord {
+  return {
+    id: row['id'] as string,
+    orderId: row['order_id'] as string,
+    ingredientId: row['ingredient_id'] as string,
+    ingredientName: row['ingredient_name'] as string,
+    quantity: Number(row['quantity']),
+    unit: row['unit'] as string,
+    unitPrice: Number(row['unit_price']),
+    total: Number(row['total']),
+  };
+}
+
+function toOrder(row: Record<string, unknown>, lines: OrderLineRecord[]): OrderRecord {
+  return {
+    id: row['id'] as string,
+    supplierId: row['supplier_id'] as string,
+    status: row['status'] as OrderStatus,
+    notes: row['notes'] as string | undefined,
+    total: Number(row['total']),
+    establishmentId: row['establishment_id'] as string,
+    sentAt: row['sent_at'] as string | undefined,
+    receivedAt: row['received_at'] as string | undefined,
+    createdAt: row['created_at'] as string,
+    lines,
+  };
+}
+
 @Injectable()
 export class OrdersService {
   constructor(
-    @InjectRepository(OrderEntity)
-    private readonly ordersRepo: Repository<OrderEntity>,
-    @InjectRepository(OrderLineEntity)
-    private readonly linesRepo: Repository<OrderLineEntity>,
+    private readonly supabase: SupabaseService,
     private readonly ingredientsService: IngredientsService,
   ) {}
 
-  findAll(establishmentId: string) {
-    return this.ordersRepo.find({
-      where: { establishmentId },
-      relations: ['lines'],
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(establishmentId: string): Promise<OrderRecord[]> {
+    const { data: orders } = await this.supabase.db
+      .from('orders')
+      .select('*')
+      .eq('establishment_id', establishmentId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (!orders || orders.length === 0) return [];
+
+    const orderIds = orders.map((o: any) => o.id);
+    const { data: lines } = await this.supabase.db
+      .from('order_lines')
+      .select('*')
+      .in('order_id', orderIds);
+
+    const linesByOrder: Record<string, OrderLineRecord[]> = {};
+    for (const l of lines ?? []) {
+      const orderId = l['order_id'] as string;
+      if (!linesByOrder[orderId]) linesByOrder[orderId] = [];
+      linesByOrder[orderId].push(toOrderLine(l));
+    }
+
+    return orders.map((o: any) => toOrder(o, linesByOrder[o.id] ?? []));
   }
 
-  async findOne(id: string, establishmentId: string) {
-    const order = await this.ordersRepo.findOne({
-      where: { id, establishmentId },
-      relations: ['lines'],
-    });
-    if (!order) throw new NotFoundException('Commande introuvable');
-    return order;
+  async findOne(id: string, establishmentId: string): Promise<OrderRecord> {
+    const { data } = await this.supabase.db
+      .from('orders')
+      .select('*')
+      .eq('id', id)
+      .eq('establishment_id', establishmentId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (!data) throw new NotFoundException('Commande introuvable');
+
+    const { data: lines } = await this.supabase.db
+      .from('order_lines')
+      .select('*')
+      .eq('order_id', id);
+
+    return toOrder(data, (lines ?? []).map(toOrderLine));
   }
 
-  async create(dto: CreateOrderDto, user: UserEntity) {
+  async create(dto: CreateOrderDto, user: UserRecord): Promise<OrderRecord> {
     let total = 0;
-    const lineEntities: Partial<OrderLineEntity>[] = [];
+    const lineData: Array<{
+      ingredient_id: string;
+      ingredient_name: string;
+      quantity: number;
+      unit: string;
+      unit_price: number;
+      total: number;
+    }> = [];
 
     for (const line of dto.lines) {
-      const ingredient = await this.ingredientsService.findOne(
-        line.ingredientId,
-        user.establishmentId,
-      );
+      const ingredient = await this.ingredientsService.findOne(line.ingredientId, user.establishmentId);
       const lineTotal = line.quantity * line.unitPrice;
       total += lineTotal;
-      lineEntities.push({
-        ingredientId: line.ingredientId,
-        ingredientName: ingredient.name,
+      lineData.push({
+        ingredient_id: line.ingredientId,
+        ingredient_name: ingredient.name,
         quantity: line.quantity,
         unit: ingredient.unit,
-        unitPrice: line.unitPrice,
+        unit_price: line.unitPrice,
         total: lineTotal,
       });
     }
 
-    const order = this.ordersRepo.create({
-      supplierId: dto.supplierId,
-      notes: dto.notes,
-      total,
-      establishmentId: user.establishmentId,
-    });
-    const saved = await this.ordersRepo.save(order);
+    const { data: order, error } = await this.supabase.db
+      .from('orders')
+      .insert({
+        supplier_id: dto.supplierId,
+        notes: dto.notes,
+        total,
+        establishment_id: user.establishmentId,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
 
-    await this.linesRepo.save(lineEntities.map((l) => ({ ...l, orderId: saved.id })));
-    return this.findOne(saved.id, user.establishmentId);
+    await this.supabase.db.from('order_lines').insert(
+      lineData.map((l) => ({ ...l, order_id: order['id'] })),
+    );
+
+    return this.findOne(order['id'] as string, user.establishmentId);
   }
 
-  async updateStatus(id: string, status: OrderEntity['status'], user: UserEntity) {
+  async updateStatus(id: string, status: OrderStatus, user: UserRecord): Promise<OrderRecord> {
     const order = await this.findOne(id, user.establishmentId);
     const validTransitions: Record<string, string[]> = {
       draft: ['sent', 'cancelled'],
@@ -82,13 +168,19 @@ export class OrdersService {
       cancelled: [],
     };
     if (!validTransitions[order.status]?.includes(status)) {
-      throw new BadRequestException(
-        `Transition invalide: ${order.status} -> ${status}`,
-      );
+      throw new BadRequestException(`Transition invalide: ${order.status} -> ${status}`);
     }
-    order.status = status;
-    if (status === 'sent') order.sentAt = new Date();
-    if (status === 'received') order.receivedAt = new Date();
-    return this.ordersRepo.save(order);
+
+    const patch: Record<string, unknown> = { status };
+    if (status === 'sent') patch['sent_at'] = new Date().toISOString();
+    if (status === 'received') patch['received_at'] = new Date().toISOString();
+
+    await this.supabase.db
+      .from('orders')
+      .update(patch)
+      .eq('id', id)
+      .eq('establishment_id', user.establishmentId);
+
+    return this.findOne(id, user.establishmentId);
   }
 }

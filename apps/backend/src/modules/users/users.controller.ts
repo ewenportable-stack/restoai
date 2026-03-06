@@ -13,12 +13,12 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  getMe(@CurrentUser() user: UserEntity) {
+  getMe(@CurrentUser() user: UserRecord) {
     return user;
   }
 
   @Get()
-  getAll(@CurrentUser() user: UserEntity) {
+  getAll(@CurrentUser() user: UserRecord) {
     return this.usersService.findByEstablishment(user.establishmentId);
   }
 }

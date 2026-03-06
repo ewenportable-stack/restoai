@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { UserEntity } from '../users/entities/user.entity';
+import { UserRecord } from '../users/users.service';
 import { OrdersService, CreateOrderDto } from './orders.service';
 import { type OrderStatus } from './entities/order.entity';
 
@@ -16,18 +16,18 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Get()
-  findAll(@CurrentUser() user: UserEntity) {
+  findAll(@CurrentUser() user: UserRecord) {
     return this.ordersService.findAll(user.establishmentId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @CurrentUser() user: UserEntity) {
+  findOne(@Param('id') id: string, @CurrentUser() user: UserRecord) {
     return this.ordersService.findOne(id, user.establishmentId);
   }
 
   @Post()
   @Roles('admin', 'chef', 'manager')
-  create(@Body() dto: CreateOrderDto, @CurrentUser() user: UserEntity) {
+  create(@Body() dto: CreateOrderDto, @CurrentUser() user: UserRecord) {
     return this.ordersService.create(dto, user);
   }
 
@@ -36,7 +36,7 @@ export class OrdersController {
   updateStatus(
     @Param('id') id: string,
     @Body('status') status: OrderStatus,
-    @CurrentUser() user: UserEntity,
+    @CurrentUser() user: UserRecord,
   ) {
     return this.ordersService.updateStatus(id, status, user);
   }

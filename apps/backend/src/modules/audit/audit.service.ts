@@ -1,41 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { AuditLogEntity } from './entities/audit-log.entity';
-import { UserEntity } from '../users/entities/user.entity';
+import { SupabaseService } from '../supabase/supabase.service';
+import { UserRecord } from '../users/users.service';
 
 @Injectable()
 export class AuditService {
-  constructor(
-    @InjectRepository(AuditLogEntity)
-    private readonly repo: Repository<AuditLogEntity>,
-  ) {}
+  constructor(private readonly supabase: SupabaseService) {}
 
-  log(
-    user: UserEntity,
+  async log(
+    user: UserRecord,
     action: string,
     entityType: string,
     entityId?: string,
     metadata?: Record<string, unknown>,
   ) {
-    return this.repo.save(
-      this.repo.create({
-        userId: user.id,
-        userEmail: user.email,
-        action,
-        entityType,
-        entityId,
-        metadata,
-        establishmentId: user.establishmentId,
-      }),
-    );
+    await this.supabase.db.from('audit_logs').insert({
+      user_id: user.id,
+      user_email: user.email,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      metadata,
+      establishment_id: user.establishmentId,
+    });
   }
 
-  findAll(establishmentId: string, limit = 100) {
-    return this.repo.find({
-      where: { establishmentId },
-      order: { createdAt: 'DESC' },
-      take: limit,
-    });
+  async findAll(establishmentId: string, limit = 100) {
+    const { data } = await this.supabase.db
+      .from('audit_logs')
+      .select('*')
+      .eq('establishment_id', establishmentId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return data ?? [];
   }
 }

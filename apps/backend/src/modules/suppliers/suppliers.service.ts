@@ -1,7 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { SupplierEntity } from './entities/supplier.entity';
+import { SupabaseService } from '../supabase/supabase.service';
 
 export class CreateSupplierDto {
   name: string;
@@ -9,24 +7,59 @@ export class CreateSupplierDto {
   phone?: string;
 }
 
+export interface SupplierRecord {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  establishmentId: string;
+  createdAt: string;
+}
+
+function toSupplier(row: Record<string, unknown>): SupplierRecord {
+  return {
+    id: row['id'] as string,
+    name: row['name'] as string,
+    email: row['email'] as string | undefined,
+    phone: row['phone'] as string | undefined,
+    establishmentId: row['establishment_id'] as string,
+    createdAt: row['created_at'] as string,
+  };
+}
+
 @Injectable()
 export class SuppliersService {
-  constructor(
-    @InjectRepository(SupplierEntity)
-    private readonly repo: Repository<SupplierEntity>,
-  ) {}
+  constructor(private readonly supabase: SupabaseService) {}
 
-  findAll(establishmentId: string) {
-    return this.repo.find({ where: { establishmentId }, order: { name: 'ASC' } });
+  async findAll(establishmentId: string): Promise<SupplierRecord[]> {
+    const { data } = await this.supabase.db
+      .from('suppliers')
+      .select('*')
+      .eq('establishment_id', establishmentId)
+      .is('deleted_at', null)
+      .order('name');
+    return (data ?? []).map(toSupplier);
   }
 
-  async findOne(id: string, establishmentId: string) {
-    const s = await this.repo.findOne({ where: { id, establishmentId } });
-    if (!s) throw new NotFoundException('Fournisseur introuvable');
-    return s;
+  async findOne(id: string, establishmentId: string): Promise<SupplierRecord> {
+    const { data } = await this.supabase.db
+      .from('suppliers')
+      .select('*')
+      .eq('id', id)
+      .eq('establishment_id', establishmentId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (!data) throw new NotFoundException('Fournisseur introuvable');
+    return toSupplier(data);
   }
 
-  create(dto: CreateSupplierDto, establishmentId: string) {
-    return this.repo.save(this.repo.create({ ...dto, establishmentId }));
+  async create(dto: CreateSupplierDto, establishmentId: string): Promise<SupplierRecord> {
+    const { data, error } = await this.supabase.db
+      .from('suppliers')
+      .insert({ name: dto.name, email: dto.email, phone: dto.phone, establishment_id: establishmentId })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return toSupplier(data);
   }
 }

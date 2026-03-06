@@ -6,6 +6,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "target": "ES2022",
     "sourceMap": true,
     "outDir": "./dist",
@@ -18,7 +19,7 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@chefai/shared": ["../../packages/shared/src"]
+      "@chefai/shared": ["packages/shared/src"]
     }
   }
 }
