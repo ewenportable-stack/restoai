@@ -29,9 +29,9 @@ export function RegisterPage() {
       setAuth(user, accessToken);
       navigate('/dashboard');
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(typeof msg === 'string' ? msg : 'Une erreur est survenue');
+      const raw = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+      const msg = Array.isArray(raw) ? raw[0] : typeof raw === 'string' ? raw : null;
+      setError(msg ?? 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }
