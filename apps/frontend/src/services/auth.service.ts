@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { LoginDto, AuthTokens, User } from '@chefai/shared';
+import type { LoginDto, User } from '@chefai/shared';
 
 export const authService = {
   login: async (dto: LoginDto): Promise<{ accessToken: string; user: User }> => {

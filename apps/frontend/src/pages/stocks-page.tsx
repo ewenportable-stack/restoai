@@ -5,7 +5,7 @@ import { stocksService } from '../services/stocks.service';
 import { ingredientsService } from '../services/ingredients.service';
 import { PageHeader } from '../components/ui/page-header';
 import { AlertBadge } from '../components/ui/alert-badge';
-import type { CreateStockMovementDto, CreateStockLotDto } from '@chefai/shared';
+import type { CreateStockLotDto } from '@chefai/shared';
 
 type Tab = 'movements' | 'lots' | 'dlc';
 
@@ -27,14 +27,6 @@ export function StocksPage() {
       qc.invalidateQueries({ queryKey: ['ingredients'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       setShowAddLot(false);
-    },
-  });
-
-  const addMovementMutation = useMutation({
-    mutationFn: stocksService.addMovement,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['movements'] });
-      qc.invalidateQueries({ queryKey: ['ingredients'] });
     },
   });
 

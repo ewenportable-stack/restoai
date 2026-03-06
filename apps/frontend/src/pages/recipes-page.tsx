@@ -53,8 +53,6 @@ export function RecipesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {recipes.map((recipe) => {
-          const foodCost = recipe.ingredients?.reduce((sum: number, ri: { quantity: number; unitCost: number }) =>
-            sum + ri.quantity * ri.unitCost, 0) / recipe.portions;
           return (
             <div key={recipe.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-start justify-between mb-3">
