@@ -166,7 +166,7 @@ VALUES ('00000000-0000-0000-0000-000000000001', 'Restaurant Demo', 'Europe/Paris
 ON CONFLICT DO NOTHING;
 
 -- Admin: admin@chefai.fr / Admin1234!
--- Hash: $2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0/wiX7rFiTW
+-- Hash: $2b$10$8ijELnhsvGvPK5CzkyDBP.lBFBHtTTkqAqSXtX9nSjEsirWzKwnIq
 INSERT INTO users (id, email, first_name, last_name, role, password_hash, establishment_id)
 VALUES (
   '00000000-0000-0000-0000-000000000002',
@@ -174,7 +174,7 @@ VALUES (
   'Admin',
   'ChefAI',
   'admin',
-  '$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0/wiX7rFiTW',
+  '$2b$10$8ijELnhsvGvPK5CzkyDBP.lBFBHtTTkqAqSXtX9nSjEsirWzKwnIq',
   '00000000-0000-0000-0000-000000000001'
 ) ON CONFLICT DO NOTHING;
 
