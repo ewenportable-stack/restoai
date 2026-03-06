@@ -19,17 +19,33 @@ import { ScheduleModule } from '@nestjs/schedule';
     ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 5432),
-        database: config.get('DB_NAME', 'chefai'),
-        username: config.get('DB_USER', 'chefai'),
-        password: config.get('DB_PASSWORD', 'chefai_dev'),
-        autoLoadEntities: true,
-        synchronize: config.get('NODE_ENV') !== 'production',
-        logging: config.get('NODE_ENV') === 'development',
-      }),
+      useFactory: (config: ConfigService) => {
+        const isProd = config.get('NODE_ENV') === 'production';
+        const databaseUrl = config.get<string>('DATABASE_URL');
+
+        // In production (Vercel + Supabase), use DATABASE_URL if available
+        if (isProd && databaseUrl) {
+          return {
+            type: 'postgres',
+            url: databaseUrl,
+            autoLoadEntities: true,
+            synchronize: false, // Schema managed via scripts/schema.sql on Supabase
+            ssl: { rejectUnauthorized: false },
+          };
+        }
+
+        return {
+          type: 'postgres',
+          host: config.get('DB_HOST', 'localhost'),
+          port: config.get<number>('DB_PORT', 5432),
+          database: config.get('DB_NAME', 'chefai'),
+          username: config.get('DB_USER', 'chefai'),
+          password: config.get('DB_PASSWORD', 'chefai_dev'),
+          autoLoadEntities: true,
+          synchronize: !isProd,
+          logging: !isProd,
+        };
+      },
     }),
     AuthModule,
     UsersModule,

@@ -27,6 +27,10 @@ export default defineConfig({
       '/api': { target: 'http://localhost:3001', changeOrigin: true },
     },
   },
+  define: {
+    // VITE_API_URL is set on Vercel to point to the backend deployment URL
+    __API_URL__: JSON.stringify(process.env.VITE_API_URL ?? ''),
+  },
   resolve: {
     alias: {
       '@chefai/shared': '../../packages/shared/src',
