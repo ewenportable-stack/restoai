@@ -1,5 +1,6 @@
 'use strict';
 
+require('reflect-metadata');
 const express = require('express');
 const { NestFactory } = require('@nestjs/core');
 const { ExpressAdapter } = require('@nestjs/platform-express');
@@ -28,6 +29,12 @@ async function bootstrap() {
 }
 
 module.exports = async function handler(req, res) {
-  const app = await bootstrap();
-  app(req, res);
+  try {
+    const app = await bootstrap();
+    app(req, res);
+  } catch (err) {
+    console.error('Bootstrap error:', err);
+    res.statusCode = 500;
+    res.end(JSON.stringify({ statusCode: 500, message: err.message }));
+  }
 };

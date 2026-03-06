@@ -29,9 +29,10 @@ export function RegisterPage() {
       setAuth(user, accessToken);
       navigate('/dashboard');
     } catch (err: unknown) {
-      const raw = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
-      const msg = Array.isArray(raw) ? raw[0] : typeof raw === 'string' ? raw : null;
-      setError(msg ?? 'Une erreur est survenue');
+      const axErr = err as { response?: { status?: number; data?: { message?: unknown } } };
+      const raw = axErr?.response?.data?.message;
+      const msg = Array.isArray(raw) ? (raw as string[])[0] : typeof raw === 'string' ? raw : null;
+      setError(msg ?? (axErr?.response?.status ? `Erreur serveur (${axErr.response.status})` : 'Impossible de contacter le serveur'));
     } finally {
       setLoading(false);
     }
