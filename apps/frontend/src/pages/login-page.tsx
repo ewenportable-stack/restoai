@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChefHat } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { authService } from '../services/auth.service';
@@ -73,6 +73,13 @@ export function LoginPage() {
           >
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
+
+          <p className="text-center text-sm text-gray-500">
+            Pas encore de compte ?{' '}
+            <Link to="/register" className="text-brand-600 font-medium hover:underline">
+              Créer un compte
+            </Link>
+          </p>
         </form>
       </div>
     </div>

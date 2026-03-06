@@ -84,6 +84,16 @@ export class UsersService {
     return toUser(data);
   }
 
+  async createEstablishment(name: string): Promise<{ id: string }> {
+    const { data, error } = await this.supabase.db
+      .from('establishments')
+      .insert({ name, timezone: 'Europe/Paris', plan_tier: 'starter' })
+      .select('id')
+      .single();
+    if (error) throw new Error(error.message);
+    return data as { id: string };
+  }
+
   async validatePassword(user: UserRecord, password: string): Promise<boolean> {
     return bcrypt.compare(password, user.passwordHash);
   }
